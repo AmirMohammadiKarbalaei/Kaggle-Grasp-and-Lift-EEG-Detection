@@ -8,7 +8,7 @@ import random
 from scripts_spyder_eegsignals import *
 
 
-###imnporting data 
+###importing data 
 path_data = "C:\\Users\\amoha\\Downloads\\train\\subj1_data"
 path_label= "C:\\Users\\amoha\\Downloads\\train\\subj1_events"
 subj1_data, subj1_label = [] , []
@@ -17,15 +17,7 @@ for file in glob.glob(path_data + "\\*.csv"):
 for file in glob.glob(path_label + "\\*.csv"):
     subj1_label.append(file)
 
-# all_data_extracted_noevent = []
-# for i in subj1_data :
-#     for j in subj1_label :
-#         data = pd.read_csv(f"{i}")
-#         events = pd.read_csv(f"{j}")
-#         data.drop(["id"],axis = 1, inplace = True)
-#         events.drop(["id"],axis = 1, inplace = True)
-#         data_extracted_noevent = data_extractor_noevent(data, events)
-# all_data_extracted_noevent.append(data_extracted_noevent)
+##Making a ingle data/label for all of the available data/labels for first subject
 all_data = pd.DataFrame()
 all_labels = pd.DataFrame()
 for i,j in zip(subj1_data, subj1_label):
@@ -35,17 +27,18 @@ for i,j in zip(subj1_data, subj1_label):
     events.drop(["id"],axis = 1, inplace = True)
     all_data = all_data.append(dataa)
     all_labels = all_labels.append(events)
-
+###creating an array consisting of rows of the data relating to occurance of each of the classes
 start_end_data = start_end_data_finder(all_labels)
 data_extracted_occurances = np.reshape(data_extractor(start_end_data,all_data),(6*260,149,32) )
-
+###creating an array consisting of rows of the data were none of classes are occuring
 no_events_data_extracted = data_extractor_noevent(all_data, all_labels)
 random_val_found_noevent = random_indexes_noevent(all_labels)
+
 final_data = np.empty(0*149*32)
 final_data = np.concatenate((data_extracted_occurances,no_events_data_extracted))
 
+### creating an array for the labels of the data
 class_labels = np.ones(1820)
-
 for i in range(7):
     class_labels[i*260:(i+1)*260] = class_labels[i*260:(i+1)*260] *(i)
 final_data = np.reshape(final_data, (1820,149*32))
