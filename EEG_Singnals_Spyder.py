@@ -6,6 +6,11 @@ import matplotlib as plt
 from collections import OrderedDict
 import random
 from scripts_spyder_eegsignals import *
+# Data Visualization
+import seaborn as sns
+import matplotlib.pyplot as plt
+import glob, os
+from sklearn.model_selection import train_test_split
 
 
 ###importing data 
@@ -17,7 +22,7 @@ for file in glob.glob(path_data + "\\*.csv"):
 for file in glob.glob(path_label + "\\*.csv"):
     subj1_label.append(file)
 
-##Making a ingle data/label for all of the available data/labels for first subject
+
 all_data = pd.DataFrame()
 all_labels = pd.DataFrame()
 for i,j in zip(subj1_data, subj1_label):
@@ -27,35 +32,44 @@ for i,j in zip(subj1_data, subj1_label):
     events.drop(["id"],axis = 1, inplace = True)
     all_data = all_data.append(dataa)
     all_labels = all_labels.append(events)
-###creating an array consisting of rows of the data relating to occurance of each of the classes
+
 start_end_data = start_end_data_finder(all_labels)
 data_extracted_occurances = np.reshape(data_extractor(start_end_data,all_data),(6*260,149,32) )
-###creating an array consisting of rows of the data were none of classes are occuring
+
 no_events_data_extracted = data_extractor_noevent(all_data, all_labels)
 random_val_found_noevent = random_indexes_noevent(all_labels)
-
 final_data = np.empty(0*149*32)
 final_data = np.concatenate((data_extracted_occurances,no_events_data_extracted))
+final_data = np.reshape(final_data, (1820,149*32))
 
-### creating an array for the labels of the data
 class_labels = np.ones(1820)
+
 for i in range(7):
     class_labels[i*260:(i+1)*260] = class_labels[i*260:(i+1)*260] *(i)
-final_data = np.reshape(final_data, (1820,149*32))
-##shuffling all data and labels:
-    
+
+
+###########Scaling and Shuffling all data and labels:##############
+from sklearn.preprocessing import StandardScaler
 all_data_shuffled , all_labels_shuffled = shuffle(final_data, class_labels, random_state = 0)
+
+
+ss = StandardScaler()
+all_data_shuffled_scaled = ss.fit_transform(all_data_shuffled)
+
+
+X_train, X_test, y_train, y_test = train_test_split(all_data_shuffled_scaled, all_labels_shuffled, test_size=0.2, random_state=1)    
+###########implementing XGboost:###########
     
-###implementing XGboost:
+    
 from xgboost import XGBClassifier
-from sklearn.model_selection import train_test_split
+
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.model_selection import KFold
-kfold_validation = KFold(15)
-X = all_data_shuffled
+kfold_validation = KFold(5)
+X = all_data_shuffled_scaled
 y = all_labels_shuffled
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
+
 model = XGBClassifier(use_label_encoder=False, eval_metric='mlogloss')
 model.fit(X_train, y_train)
 XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=np.arange(0.3, 1, 0.1),
@@ -69,9 +83,108 @@ XGBClassifier(base_score=0.5, booster='gbtree', colsample_bylevel=np.arange(0.3,
               tree_method='exact', use_label_encoder=False,
               validate_parameters=1, verbosity=None)
 y_pred = model.predict(X_test)
-accuracy = accuracy_score(y_test, y_pred)
+XGBoost_acc = accuracy_score(y_test, y_pred)
 
 mod_score=cross_val_score(model,X,y,cv=kfold_validation)
 
 
-print(f"The accuracy of this model is {accuracy}") , print(mod_score)
+print(f"The accuracy of this XGBoost  is {XGBoost_acc}") , print(mod_score)
+
+
+
+##########Support Vector machines###########
+
+
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+clf = SVC(kernel ="rbf" )
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+SVM_acc = accuracy_score(y_test,y_pred)
+
+
+
+
+
+##########Principal Component Analysis(PCA):###########
+    
+    
+    
+from sklearn.decomposition import PCA
+    
+n_components = 15
+pca = PCA(n_components = n_components)
+pca.fit(all_data_shuffled)
+pca_tr = pca.fit_transform(all_data_shuffled_scaled)
+
+
+# Naming the PCs by iteration
+pc_cols = [f'PC{n}' for n in range(1, n_components + 1)]
+# Creating a pd.DataFrame containing the explained variance ratio from the PCA
+pc_var_df = pd.DataFrame(
+    {
+        'Variance': pca.explained_variance_ratio_,
+        'PC': pc_cols
+    }
+)
+
+# Creating a subplot of the cumulative variance ratio & Eigenvalues
+fig, ax1 = plt.subplots(figsize=(25, 10))
+ax2 = ax1.twinx()
+
+# Creating a barplot
+sns.barplot(
+    x='PC', y='Variance',
+    data=pc_var_df,
+    label='PC',
+    color='tab:red',
+    ax=ax1
+)
+
+ax1.set_ylabel('Explained Variance (Eigenvalues)')
+# Plotting the cumulative sum of Explained Variance Ratio
+ax2.plot(
+    np.cumsum(pca.explained_variance_ratio_),
+    label='Cumulative Explained Variance Ratio'
+)
+plt.title('Scree Plot')
+ax2.set_ylabel('Cumulative Explained Variance Ratio')
+ax1.legend(loc=2)
+ax2.legend()
+ax2.grid(b=None)
+plt.show()
+pc_var_df
+
+
+
+###########Random Forest Model###########
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import metrics
+#Create a Gaussian Classifier
+clf = RandomForestClassifier(n_estimators=1000)
+#Train the model using the training sets y_pred=clf.predict(X_test)
+clf.fit(X_train,y_train)
+y_pred=clf.predict(X_test)
+RandomForest_acc = metrics.accuracy_score(y_test, y_pred)
+
+#################Implementing K nearest neighbor##############
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+
+knn5 = KNeighborsClassifier(n_neighbors = 5)
+knn1 = KNeighborsClassifier(n_neighbors=1)
+knn10 = KNeighborsClassifier(n_neighbors=10)
+
+knn5.fit(X_train, y_train)
+knn1.fit(X_train, y_train)
+knn10.fit(X_train, y_train)
+
+y_pred_10 = knn10.predict(X_test)
+y_pred_5 = knn5.predict(X_test)
+y_pred_1 = knn1.predict(X_test)
+
+print("Accuracy with k=5", accuracy_score(y_test, y_pred_5)*100)
+print("Accuracy with k=1", accuracy_score(y_test, y_pred_1)*100)
+print("Accuracy with k=10", accuracy_score(y_test, y_pred_10)*100)
