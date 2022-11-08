@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import random
 
-
 #defining required functions:
 def data_extractor(start_end_data,data1):
     data = []
@@ -56,10 +55,10 @@ def random_indexes_noevent(event):
             indexes.append(rand)
     return indexes  
 
-def data_extractor_noevent(data,event):
+def data_extractor_noevent(data,event,number):
     events_rows = []
     indexes = random_indexes_noevent(event)
-    for i in range(260):
+    for i in range(number):
         randy = random.choice(indexes)
         events_rows.append(np.array(data.iloc[randy:randy+149]))
     events_rows = np.array(events_rows)
