@@ -13,7 +13,7 @@ import glob, os
 from sklearn.model_selection import train_test_split
 
 
-###importing data 
+###importing all of subj1 data and events
 path_data = "C:\\Users\\amoha\\Downloads\\train\\subj1_data"
 path_label= "C:\\Users\\amoha\\Downloads\\train\\subj1_events"
 subj1_data, subj1_label = [] , []
@@ -21,7 +21,6 @@ for file in glob.glob(path_data + "\\*.csv"):
     subj1_data.append(file)
 for file in glob.glob(path_label + "\\*.csv"):
     subj1_label.append(file)
-
 
 all_data = pd.DataFrame()
 all_labels = pd.DataFrame()
@@ -32,20 +31,24 @@ for i,j in zip(subj1_data, subj1_label):
     events.drop(["id"],axis = 1, inplace = True)
     all_data = all_data.append(dataa)
     all_labels = all_labels.append(events)
-
+### making an array of data were at least 1 class is occuring
 start_end_data = start_end_data_finder(all_labels)
 data_extracted_occurances = np.reshape(data_extractor(start_end_data,all_data),(6*260,149,32) )
 
-no_events_data_extracted = data_extractor_noevent(all_data, all_labels)
-random_val_found_noevent = random_indexes_noevent(all_labels)
+### making an array containing data were no class is occuring
+no_events_data_extracted = data_extractor_noevent(all_data, all_labels,1560)
 final_data = np.empty(0*149*32)
 final_data = np.concatenate((data_extracted_occurances,no_events_data_extracted))
-final_data = np.reshape(final_data, (1820,149*32))
+final_data = np.reshape(final_data, (3120,149*32))
 
-class_labels = np.ones(1820)
+class_labels = np.ones(1560)
 
-for i in range(7):
+for i in range(6):
     class_labels[i*260:(i+1)*260] = class_labels[i*260:(i+1)*260] *(i)
+
+noevent_label = np.ones(1560)*(6)
+
+all_class_labels = np.concatenate((class_labels,noevent_label))
 
 
 ###########Scaling and Shuffling all data and labels:##############
@@ -56,8 +59,62 @@ all_data_shuffled , all_labels_shuffled = shuffle(final_data, class_labels, rand
 ss = StandardScaler()
 all_data_shuffled_scaled = ss.fit_transform(all_data_shuffled)
 
+##########Principal Component Analysis(PCA):###########
+    
+    
+    
+from sklearn.decomposition import PCA
+    
+n_components = 15
+pca = PCA(n_components = n_components)
+pca.fit(all_data_shuffled)
+pca_tr = pca.fit_transform(all_data_shuffled_scaled)
 
-X_train, X_test, y_train, y_test = train_test_split(all_data_shuffled_scaled, all_labels_shuffled, test_size=0.2, random_state=1)    
+
+
+# Naming the PCs by iteration
+# pc_cols = [f'PC{n}' for n in range(1, n_components + 1)]
+# # Creating a pd.DataFrame containing the explained variance ratio from the PCA
+# pc_var_df = pd.DataFrame(
+#     {
+#         'Variance': pca.explained_variance_ratio_,
+#         'PC': pc_cols
+#     }
+# )
+
+# # Creating a subplot of the cumulative variance ratio & Eigenvalues
+# fig, ax1 = plt.subplots(figsize=(25, 10))
+# ax2 = ax1.twinx()
+
+# # Creating a barplot
+# sns.barplot(
+#     x='PC', y='Variance',
+#     data=pc_var_df,
+#     label='PC',
+#     color='tab:red',
+#     ax=ax1
+# )
+
+# ax1.set_ylabel('Explained Variance (Eigenvalues)')
+# # Plotting the cumulative sum of Explained Variance Ratio
+# ax2.plot(
+#     np.cumsum(pca.explained_variance_ratio_),
+#     label='Cumulative Explained Variance Ratio'
+# )
+# plt.title('Scree Plot')
+# ax2.set_ylabel('Cumulative Explained Variance Ratio')
+# ax1.legend(loc=2)
+# ax2.legend()
+# ax2.grid(b=None)
+# plt.show()
+# pc_var_df
+
+#### dividing the data into train and test:
+X_train, X_test, y_train, y_test = train_test_split(all_data_shuffled_scaled, 
+                                                    all_labels_shuffled, 
+                                                    test_size=0.2, random_state=1)    
+
+
 ###########implementing XGboost:###########
     
     
@@ -105,57 +162,6 @@ y_pred = clf.predict(X_test)
 SVM_acc = accuracy_score(y_test,y_pred)
 
 
-
-
-
-##########Principal Component Analysis(PCA):###########
-    
-    
-    
-from sklearn.decomposition import PCA
-    
-n_components = 15
-pca = PCA(n_components = n_components)
-pca.fit(all_data_shuffled)
-pca_tr = pca.fit_transform(all_data_shuffled_scaled)
-
-
-# Naming the PCs by iteration
-pc_cols = [f'PC{n}' for n in range(1, n_components + 1)]
-# Creating a pd.DataFrame containing the explained variance ratio from the PCA
-pc_var_df = pd.DataFrame(
-    {
-        'Variance': pca.explained_variance_ratio_,
-        'PC': pc_cols
-    }
-)
-
-# Creating a subplot of the cumulative variance ratio & Eigenvalues
-fig, ax1 = plt.subplots(figsize=(25, 10))
-ax2 = ax1.twinx()
-
-# Creating a barplot
-sns.barplot(
-    x='PC', y='Variance',
-    data=pc_var_df,
-    label='PC',
-    color='tab:red',
-    ax=ax1
-)
-
-ax1.set_ylabel('Explained Variance (Eigenvalues)')
-# Plotting the cumulative sum of Explained Variance Ratio
-ax2.plot(
-    np.cumsum(pca.explained_variance_ratio_),
-    label='Cumulative Explained Variance Ratio'
-)
-plt.title('Scree Plot')
-ax2.set_ylabel('Cumulative Explained Variance Ratio')
-ax1.legend(loc=2)
-ax2.legend()
-ax2.grid(b=None)
-plt.show()
-pc_var_df
 
 
 
