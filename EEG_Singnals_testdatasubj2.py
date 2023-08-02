@@ -1,16 +1,23 @@
 import numpy as np
 import pandas as pd 
 from scripts_spyder_eegsignals import *
+
+
+#importing subject data and labels
 subj2_data = pd.read_csv("subj2_series1_data.csv")
 subj2_labels = pd.read_csv("subj2_series1_events.csv")
+
+
+
+
 test_data_labels = subj2_labels.drop("id", axis = 1)
 test_data = subj2_data.drop("id", axis = 1)
 
 
 start_end_test_data = start_end_data_finder(test_data_labels)
-        
 test_data_extracted = data_extractor(start_end_test_data, test_data)
 test_data_extracted = np.reshape(test_data_extracted,(6*28,149,32))
+
 test_data_noevent_extracted = data_extractor_noevent(test_data,test_data_labels,6*28)
 
 test_data_all = np.concatenate((test_data_extracted,test_data_noevent_extracted))
