@@ -1,15 +1,12 @@
-# Kaggle-Grasp-and-Lift-EEG-Detection
+# Kaggle-Grasp-and-Lift-EEG-Detection: Empowering Patients with Neurological Disabilities
 
-Identifying simple hand functions to help patients with neurological disabilities/amputation to gain the ability to perform these basic activities.
+This project is dedicated to revolutionizing the lives of patients with neurological disabilities and amputations by enabling them to regain the ability to perform basic activities. To achieve this, we have undertaken the challenge of identifying simple hand functions through cutting-edge EEG detection.
 
 
-Training and Test data can be downloaded from Kaggle Grasp-and-Lift EEG Detection competition:https://www.kaggle.com/c/grasp-and-lift-eeg-detection
+The Training and Test data essential for this project can be accessed through the Kaggle Grasp-and-Lift EEG Detection competition. :https://www.kaggle.com/c/grasp-and-lift-eeg-detection
 
-data for subj1 has been used to train the model. A scripts file was made containing all of the required functions to increase readability of the main body of code. 
-data has first been cleaned and devided into sections whith  each section containing 149 rows of data from sensors. data and labels have been made into array to increase computaion time. all data has been scaled using a standard scaler and suitability of PCA has also been checked. PCA with 25 components has proved to have similar accuracy to using the all of the data components
 
-***(In this model data has been divided to  segments each containing 149 rows of data for occurance of classes as well as nothin occuring. this means each predicion has 149*32 components which as mentioned can be reduced to 25 to increase computational greatly)***
+Data preprocessing involved meticulous cleaning and division into sections, each comprising 150 rows of sensor data. By converting data and labels into arrays, we've significantly improved computational efficiency. Employing a standard scaler and assessing the suitability of PCA, we found that PCA with 25 components yielded comparable accuracy to using all data components.
 
-Different algorithms such as SVM, KNN, XGboost and Random Forest have been implemented on the data. with XGboost having the highest accuracy of above 77%.
 
-once the model was trained, data from subj2 was used to chech the accuracy of the mmodel predcitions on new data.
+Different algorithms such as SVM, KNN, XGboost and Random Forest have been implemented on the data. with Random Forest having the highest accuracy of above 92%.
