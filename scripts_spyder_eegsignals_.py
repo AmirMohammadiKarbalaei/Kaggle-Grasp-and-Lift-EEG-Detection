@@ -49,9 +49,9 @@ def evaluate_model(model, data, labels):
     class_labels = sorted(set(y_test))
 
     plt.figure(figsize=(10, 8))
-    sns.barplot(x=class_labels, y=precision, color='blue', alpha=1, label='Precision')
-    sns.barplot(x=class_labels, y=recall, color='green', alpha=1, label='Recall')
-    sns.barplot(x=class_labels, y=f1, color='yellow', alpha=1, label='F1-score')
+    sns.barplot(x=class_labels, y=precision, color='blue', alpha=0.8, label='Precision')
+    sns.barplot(x=class_labels, y=recall, color='green', alpha=0.8, label='Recall')
+    sns.barplot(x=class_labels, y=f1, color='yellow', alpha=0.8, label='F1-score')
 
     plt.xlabel("Class")
     plt.ylabel("Score")
@@ -81,7 +81,7 @@ def data_extractor(start_end_data:pd.DataFrame,data1:pd.DataFrame):
         for j in range(0, len(start_end_data[f"{i}"]), 2):
             start_idx = start_end_data[f"{i}"][j]
             end_idx = start_end_data[f"{i}"][j+1]
-            rows.append(np.array(data1.iloc[start_idx:end_idx]))
+            rows.append(np.array(data1.iloc[start_idx:end_idx+1]))
 
         data.append(np.array(rows))
 
@@ -153,6 +153,6 @@ def data_extractor_noevent(data:pd.DataFrame,event:pd.DataFrame,number_of_consec
     indexes = random_indexes_noevent(event)
     for i in range(number_of_consecutive_rows):
         randy = random.choice(indexes)
-        events_rows.append(np.array(data.iloc[randy:randy+149]))
+        events_rows.append(np.array(data.iloc[randy:randy+150]))
     events_rows = np.array(events_rows)
     return events_rows
