@@ -11,15 +11,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, classification_report
 
 
-def evaluate_model(model, data, labels):
+def evaluate_model(model, data:np.array, labels:np.array):
     """
     This function evaluates the performance of a given machine learning model
-      on a dataset. It splits the data into training and testing sets, trains 
-      the model, and predicts on the test set. The function calculates and displays
-        the accuracy and confusion matrix of the predictions. It also computes the 
-        precision, recall, and F1-score for each class and visualizes them using a 
-        bar plot. Finally, it prints a classification report summarizing the 
-        model's performance for each class.
+    on a dataset. It splits the data into training and testing sets, trains 
+    the model, and predicts on the test set. The function calculates and displays
+    the accuracy and confusion matrix of the predictions. It also computes the 
+    precision, recall, and F1-score for each class and visualizes them using a 
+    bar plot. Finally, it prints a classification report summarizing the 
+    model's performance for each class.
     
     """
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
@@ -63,6 +63,7 @@ def evaluate_model(model, data, labels):
 
     print("Classification Report:")
     print(classification_report(y_test, y_pred))
+    return model
 
 
 def data_extractor(start_end_data:pd.DataFrame,data1:pd.DataFrame):
