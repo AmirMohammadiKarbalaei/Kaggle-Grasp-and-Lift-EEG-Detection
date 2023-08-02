@@ -134,7 +134,7 @@ def random_indexes_noevent(event:pd.DataFrame):
     indexes = []
     for i in range(1000):
         rand = random.choice(range(1000))
-        num = np.sum(event.iloc[rand:rand+149])
+        num = np.sum(event.iloc[rand:rand+150])
         if num.any() == False:
             indexes.append(rand)
     return indexes
