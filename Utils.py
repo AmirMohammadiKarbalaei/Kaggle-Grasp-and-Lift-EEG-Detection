@@ -1,15 +1,15 @@
 import pandas as pd
 import numpy as np
 import random
-import pandas as pd
-import numpy as np
 import random
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, classification_report
-
+import glob
+import os
+from tqdm import tqdm
 
 def evaluate_model(model, data, labels):
     """
@@ -106,20 +106,19 @@ def start_end_data_finder(events:pd.DataFrame):
             if j == 1:
                 ones.append(idx)
             dic[i] = ones
-    df = pd.DataFrame.from_dict(dic)
     start_end = {}    
-    for idx,event in enumerate(df.columns):
-        start_end_vals =[df[f"{event}"][0]]
-        for t,i in enumerate(df[f"{event}"]):
-            if t == len(df[f"{event}"])-1:
+    for idx,event in enumerate(dic.keys()):
+        start_end_vals =[dic[f"{event}"][0]]
+        for t,i in enumerate(dic[f"{event}"]):
+            if t == len(dic[f"{event}"])-1:
                 break
-            if df[f"{event}"][t+1] - df[f"{event}"][t] !=1:
-                start_end_vals.append(df[f"{event}"][t])
-                start_end_vals.append(df[f"{event}"][t+1])
-        start_end_vals.append(df[f"{event}"][len(df[f"{event}"])-1])
+            if dic[f"{event}"][t+1] - dic[f"{event}"][t] !=1:
+                start_end_vals.append(dic[f"{event}"][t])
+                start_end_vals.append(dic[f"{event}"][t+1])
+        start_end_vals.append(dic[f"{event}"][len(dic[f"{event}"])-1])
         start_end[f"{event}"] = start_end_vals 
-    start_end_data = pd.DataFrame.from_dict(start_end)
-    return start_end_data
+    #start_end_data = pd.DataFrame.from_dict(start_end)
+    return start_end
 
 
 
@@ -156,3 +155,38 @@ def data_extractor_noevent(data:pd.DataFrame,event:pd.DataFrame,number_of_consec
         events_rows.append(np.array(data.iloc[randy:randy+150]))
     events_rows = np.array(events_rows)
     return events_rows
+
+
+
+
+def load_and_save_data(subject_count=8, data_path_template="C:\\Users\\amoha\\Downloads\\train\\subj{}_data",
+                       label_path_template="C:\\Users\\amoha\\Downloads\\train\\subj{}_events"):
+    all_data_list = []
+    all_labels_list = []
+
+    for subject_id in range(1, subject_count + 1):
+        subj_data = []
+        subj_labels = []
+        data_path = data_path_template.format(subject_id)
+        label_path = label_path_template.format(subject_id)
+
+        data_files = glob.glob(data_path + "\\*.csv")
+        label_files = glob.glob(label_path + "\\*.csv")
+
+        # Use tqdm to create a progress bar
+        for data_file, label_file in tqdm(zip(data_files, label_files), total=len(data_files), desc=f"Subject {subject_id}"):
+            data = pd.read_csv(data_file)
+            labels = pd.read_csv(label_file)
+            data.drop(["id"], axis=1, inplace=True)
+            labels.drop(["id"], axis=1, inplace=True)
+            subj_data.append(data)
+            subj_labels.append(labels)
+
+        # Concatenate data and labels for the current subject
+        all_data = pd.concat(subj_data, ignore_index=True)
+        all_labels = pd.concat(subj_labels, ignore_index=True)
+
+        all_data_list.append(all_data)
+        all_labels_list.append(all_labels)
+
+    return all_data_list, all_labels_list
