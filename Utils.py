@@ -75,7 +75,7 @@ def data_extractor(start_end_data:pd.DataFrame,data1:pd.DataFrame):
     
     """
     data = []
-    for i in start_end_data.columns:
+    for i in start_end_data.keys():
         
         rows = []
         for j in range(0, len(start_end_data[f"{i}"]), 2):
@@ -83,11 +83,8 @@ def data_extractor(start_end_data:pd.DataFrame,data1:pd.DataFrame):
             end_idx = start_end_data[f"{i}"][j+1]
             rows.append(np.array(data1.iloc[start_idx:end_idx+1]))
 
-        data.append(np.array(rows))
-
-    #datas = np.reshape(datas,(6*260,149,32))
-    return np.array(data)
-
+        data.append(rows)
+    return data
 
 
 
@@ -131,8 +128,8 @@ def random_indexes_noevent(event:pd.DataFrame):
     
     """
     indexes = []
-    for i in range(1000):
-        rand = random.choice(range(1000))
+    for i in range(1500):
+        rand = random.choice(range(1500))
         num = np.sum(event.iloc[rand:rand+149])
         if num.any() == False:
             indexes.append(rand)
@@ -159,13 +156,13 @@ def data_extractor_noevent(data:pd.DataFrame,event:pd.DataFrame,number_of_consec
 
 
 
-def load_and_save_data(subject_count=8, data_path_template="C:\\Users\\amoha\\Downloads\\train\\subj{}_data",
+def load_data(subject_count=8, data_path_template="C:\\Users\\amoha\\Downloads\\train\\subj{}_data",
                        label_path_template="C:\\Users\\amoha\\Downloads\\train\\subj{}_events"):
     all_data_list = []
     all_labels_list = []
 
     for subject_id in range(1, subject_count + 1):
-        subj_data = []
+        subj_data = []  # List to store data DataFrames for the current subject
         subj_labels = []
         data_path = data_path_template.format(subject_id)
         label_path = label_path_template.format(subject_id)
@@ -179,7 +176,7 @@ def load_and_save_data(subject_count=8, data_path_template="C:\\Users\\amoha\\Do
             labels = pd.read_csv(label_file)
             data.drop(["id"], axis=1, inplace=True)
             labels.drop(["id"], axis=1, inplace=True)
-            subj_data.append(data)
+            subj_data.append(data)  # Append data DataFrame to subj_data list
             subj_labels.append(labels)
 
         # Concatenate data and labels for the current subject
@@ -190,3 +187,4 @@ def load_and_save_data(subject_count=8, data_path_template="C:\\Users\\amoha\\Do
         all_labels_list.append(all_labels)
 
     return all_data_list, all_labels_list
+
