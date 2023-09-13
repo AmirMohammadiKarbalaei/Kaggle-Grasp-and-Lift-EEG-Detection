@@ -120,38 +120,50 @@ def start_end_data_finder(events:pd.DataFrame):
 
 
 
-
-def random_indexes_noevent(event:pd.DataFrame):
+def random_indexes_noevent(event: pd.DataFrame, max_rows: int = 1500):
     """
-    Generates random row indexes with no events occurring 
+    Generates random row indexes with no events occurring
     and returns them as a list.
-    
+
+    Args:
+        event (pd.DataFrame): DataFrame containing event data.
+        max_rows (int): Maximum number of rows to consider. Default is 1500.
+
+    Returns:
+        list: List of random row indexes with no events.
     """
     indexes = []
-    for i in range(1500):
-        rand = random.choice(range(1500))
-        num = np.sum(event.iloc[rand:rand+149])
-        if num.any() == False:
+    for i in range(max_rows):
+        rand = random.choice(range(max_rows - 149))  
+        num = np.sum(event.iloc[rand:rand+150].sum(axis=1))
+        if num == 0:
             indexes.append(rand)
     return indexes
 
 
 
 
-def data_extractor_noevent(data:pd.DataFrame,event:pd.DataFrame,number_of_consecutive_rows:int):
+def data_extractor_noevent(data, event, number_of_consecutive_rows):
     """
-    
-    Extracts random sets of consecutive rows with no events 
+    Extracts random sets of consecutive rows with no events
     from the data and returns them as a NumPy array.
-    
+
+    Args:
+        data (pd.DataFrame): DataFrame containing data.
+        event (pd.DataFrame): DataFrame containing events.
+        number_of_consecutive_rows (int): Number of consecutive rows to extract.
+
+    Returns:
+        np.ndarray: NumPy array containing the extracted rows.
     """
     events_rows = []
     indexes = random_indexes_noevent(event)
     for i in range(number_of_consecutive_rows):
         randy = random.choice(indexes)
-        events_rows.append(np.array(data.iloc[randy:randy+150]))
+        events_rows.append(data.iloc[randy:randy+149].values)  # Use .values to get NumPy array
     events_rows = np.array(events_rows)
     return events_rows
+
 
 
 
