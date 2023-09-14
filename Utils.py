@@ -134,8 +134,8 @@ def random_indexes_noevent(event: pd.DataFrame, max_rows: int = 1500):
     """
     indexes = []
     for i in range(max_rows):
-        rand = random.choice(range(max_rows - 149))  
-        num = np.sum(event.iloc[rand:rand+150].sum(axis=1))
+        rand = random.choice(range(max_rows - 51))  
+        num = np.sum(event.iloc[rand:rand+51].sum(axis=1))
         if num == 0:
             indexes.append(rand)
     return indexes
@@ -160,7 +160,7 @@ def data_extractor_noevent(data, event, number_of_consecutive_rows):
     indexes = random_indexes_noevent(event)
     for i in range(number_of_consecutive_rows):
         randy = random.choice(indexes)
-        events_rows.append(data.iloc[randy:randy+149].values)  # Use .values to get NumPy array
+        events_rows.append(data.iloc[randy:randy+51].values)  # Use .values to get NumPy array
     events_rows = np.array(events_rows)
     return events_rows
 
