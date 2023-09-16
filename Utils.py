@@ -305,3 +305,28 @@ def calculate_combined_dict(all_extracted_data):
     return combined_dict
 
 
+
+def apply_data_augmentation(eeg_signal):
+    # Randomly select a data augmentation technique
+    augmentation_technique = np.random.choice(['time_warp', 'noise_injection', 'signal_shift'])
+
+    augmented_signal = eeg_signal.copy()
+
+    for technique in augmentation_technique:
+        if technique == 'time_warp':
+            # Apply time warping by scaling the time axis
+            scaling_factor = np.random.uniform(0.9, 1.1)
+            augmented_signal = np.interp(np.arange(len(augmented_signal)) * scaling_factor, np.arange(len(augmented_signal)), augmented_signal)
+
+        elif technique == 'noise_injection':
+            # Add random noise to the signal and cast to 'int64'
+            noise_level = np.random.uniform(0.01, 0.1)
+            noise = np.random.normal(0, noise_level, size=len(augmented_signal)).astype('int64')
+            augmented_signal += noise
+
+        elif technique == 'signal_shift':
+            # Shift the signal in time
+            shift_amount = np.random.randint(-50, 50)  # Adjust the range as needed
+            augmented_signal = np.roll(augmented_signal, shift_amount)
+
+    return augmented_signal
