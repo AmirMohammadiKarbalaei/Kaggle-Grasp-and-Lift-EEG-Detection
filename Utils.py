@@ -303,3 +303,5 @@ def calculate_combined_dict(all_extracted_data):
         print(f"Class {class_idx}: Data points = {total_length}")
 
     return combined_dict
+
+
