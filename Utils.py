@@ -120,7 +120,7 @@ def start_end_data_finder(events:pd.DataFrame):
 
 
 
-def random_indexes_noevent(event: pd.DataFrame, max_rows: int = 1500):
+def random_indexes_noevent(event: pd.DataFrame, max_rows: int = 1500, threshold = 20):
     """
     Generates random row indexes with no events occurring
     and returns them as a list.
@@ -134,7 +134,7 @@ def random_indexes_noevent(event: pd.DataFrame, max_rows: int = 1500):
     """
     indexes = []
     for i in range(max_rows):
-        rand = random.choice(range(max_rows - 51))  
+        rand = random.choice(range(max_rows - threshold+1))  
         num = np.sum(event.iloc[rand:rand+51].sum(axis=1))
         if num == 0:
             indexes.append(rand)
@@ -143,7 +143,7 @@ def random_indexes_noevent(event: pd.DataFrame, max_rows: int = 1500):
 
 
 
-def data_extractor_noevent(data, event, number_of_consecutive_rows):
+def data_extractor_noevent(data, event, number_of_consecutive_rows,threshold):
     """
     Extracts random sets of consecutive rows with no events
     from the data and returns them as a NumPy array.
@@ -157,10 +157,10 @@ def data_extractor_noevent(data, event, number_of_consecutive_rows):
         np.ndarray: NumPy array containing the extracted rows.
     """
     events_rows = []
-    indexes = random_indexes_noevent(event)
+    indexes = random_indexes_noevent(event,threshold = threshold)
     for i in range(number_of_consecutive_rows):
         randy = random.choice(indexes)
-        events_rows.append(data.iloc[randy:randy+51].values)  # Use .values to get NumPy array
+        events_rows.append(data.iloc[randy:randy+threshold+1].values)  # Use .values to get NumPy array
     events_rows = np.array(events_rows)
     return events_rows
 
@@ -168,35 +168,138 @@ def data_extractor_noevent(data, event, number_of_consecutive_rows):
 
 
 
-def load_data(subject_count=8, data_path_template="C:\\Users\\amoha\\Downloads\\train\\subj{}_data",
-                       label_path_template="C:\\Users\\amoha\\Downloads\\train\\subj{}_events"):
+import pandas as pd
+import glob
+from tqdm import tqdm
+import logging
+
+DATA_PATH_TEMPLATE = "C:\\Users\\amoha\\Downloads\\train\\subj{}_data"
+LABEL_PATH_TEMPLATE = "C:\\Users\\amoha\\Downloads\\train\\subj{}_events"
+
+def load_data(subject_count: int = 8, data_path_template: str = DATA_PATH_TEMPLATE,
+              label_path_template: str = LABEL_PATH_TEMPLATE) -> tuple:
+    """
+    Load data and labels for multiple subjects.
+
+    Args:
+        subject_count (int): The number of subjects to load.
+        data_path_template (str): The template for the data file paths.
+        label_path_template (str): The template for the label file paths.
+
+    Returns:
+        Tuple: Two lists containing concatenated data and labels DataFrames for each subject.
+    """
     all_data_list = []
     all_labels_list = []
 
     for subject_id in range(1, subject_count + 1):
-        subj_data = []  # List to store data DataFrames for the current subject
-        subj_labels = []
+        subject_data_list = []  # List to store data DataFrames for the current subject
+        subject_labels_list = []
         data_path = data_path_template.format(subject_id)
         label_path = label_path_template.format(subject_id)
 
         data_files = glob.glob(data_path + "\\*.csv")
         label_files = glob.glob(label_path + "\\*.csv")
 
-        # Use tqdm to create a progress bar
+        if not data_files or not label_files:
+            logging.warning(f"No files found for Subject {subject_id}. Skipping.")
+            continue
+
         for data_file, label_file in tqdm(zip(data_files, label_files), total=len(data_files), desc=f"Subject {subject_id}"):
-            data = pd.read_csv(data_file)
-            labels = pd.read_csv(label_file)
-            data.drop(["id"], axis=1, inplace=True)
-            labels.drop(["id"], axis=1, inplace=True)
-            subj_data.append(data)  # Append data DataFrame to subj_data list
-            subj_labels.append(labels)
+            try:
+                data = pd.read_csv(data_file)
+                labels = pd.read_csv(label_file)
+                data.drop(["id"], axis=1, inplace=True)
+                labels.drop(["id"], axis=1, inplace=True)
+                subject_data_list.append(data)
+                subject_labels_list.append(labels)
+            except Exception as e:
+                logging.error(f"Error loading data for Subject {subject_id}: {str(e)}")
 
-        # Concatenate data and labels for the current subject
-        all_data = pd.concat(subj_data, ignore_index=True)
-        all_labels = pd.concat(subj_labels, ignore_index=True)
-
-        all_data_list.append(all_data)
-        all_labels_list.append(all_labels)
+        if subject_data_list and subject_labels_list:
+            all_data = pd.concat(subject_data_list, ignore_index=True)
+            all_labels = pd.concat(subject_labels_list, ignore_index=True)
+            all_data_list.append(all_data)
+            all_labels_list.append(all_labels)
 
     return all_data_list, all_labels_list
 
+
+def process_start_end(start_end:list, threshold:int):
+    """
+    Process the start_end data by applying a threshold to the values.
+
+    Args:
+        start_end (list): A list of dictionaries containing start and end values.
+        threshold (int): The threshold value to compare against. Values greater
+            than the threshold will be adjusted.
+
+    Returns:
+        list: The processed start_end data with adjusted values.
+    """
+    for i in range(len(start_end)):
+        for key, value in start_end[i].items():
+            new_value = []
+            found_pair = False
+            for idx in range(0, len(value), 2):
+                if idx + 1 < len(value):
+                    a = value[idx + 1] - value[idx]
+                    if a > threshold:
+                        x = value[idx]
+                        y = x + threshold
+                        new_value.extend([x, y])
+                        found_pair = True
+                    elif a == threshold:
+                        new_value.extend([value[idx], value[idx + 1]])
+                    elif a < threshold:
+                        # If the difference is less than the threshold, remove these values
+                        value[idx] = None
+                        value[idx + 1] = None
+
+            # Filter out None values (values less than the threshold) from the list
+            new_value = [v for v in new_value if v is not None]
+            start_end[i][key] = new_value
+    
+    return start_end
+
+
+
+def process_load_labels(load_labels,number_of_subj):
+    """
+    Process a list of dataframes(labels) by filtering rows where the sum of values is less than or equal to 1.
+    This function removes data points where there are more than one class present.
+
+    Args:
+        load_labels (list of DataFrame): A list of DataFrames to be processed.
+
+    Returns:
+        list of DataFrame: The processed list of DataFrames.
+    """
+    processed_load_labels = []
+    
+    for i in range(number_of_subj):
+        df_copy = load_labels[i].copy()
+        df_copy['sum'] = df_copy.sum(axis=1)
+        df_copy = df_copy[df_copy['sum'] <= 1]
+        df_copy = df_copy.drop(columns=['sum'])
+        processed_load_labels.append(df_copy)
+    
+    return processed_load_labels
+
+def calculate_combined_dict(all_extracted_data):
+    class_data = {}
+    combined_dict = {}
+
+    for class_idx in range(6):
+        class_data[class_idx] = []
+
+    for id, sublist in enumerate(all_extracted_data):
+        for idx, secondary_list in enumerate(sublist):
+            class_data[idx].append(len(secondary_list))
+
+    for class_idx, lengths in class_data.items():
+        total_length = sum(lengths)
+        combined_dict[f"{class_idx}"] = total_length
+        print(f"Class {class_idx}: Data points = {total_length}")
+
+    return combined_dict
