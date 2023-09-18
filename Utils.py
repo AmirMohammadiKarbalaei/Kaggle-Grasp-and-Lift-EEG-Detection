@@ -242,19 +242,19 @@ def process_start_end(start_end:list, threshold:int):
             new_value = []
             found_pair = False
             for idx in range(0, len(value), 2):
-                if idx + 1 < len(value):
-                    a = value[idx + 1] - value[idx]
-                    if a > threshold:
-                        x = value[idx]
-                        y = x + threshold
-                        new_value.extend([x, y])
-                        found_pair = True
-                    elif a == threshold:
-                        new_value.extend([value[idx], value[idx + 1]])
-                    elif a < threshold:
-                        # If the difference is less than the threshold, remove these values
-                        value[idx] = None
-                        value[idx + 1] = None
+
+                a = value[idx + 1] - value[idx]
+                if a > threshold:
+                    x = value[idx]
+                    y = x + threshold
+                    new_value.extend([x, y])
+                    found_pair = True
+                elif a == threshold:
+                    new_value.extend([value[idx], value[idx + 1]])
+                elif a < threshold:
+                    # If the difference is less than the threshold, remove these values
+                    value[idx] = None
+                    value[idx + 1] = None
 
             # Filter out None values (values less than the threshold) from the list
             new_value = [v for v in new_value if v is not None]
@@ -286,23 +286,29 @@ def process_load_labels(load_labels,number_of_subj):
     
     return processed_load_labels
 
-def calculate_combined_dict(all_extracted_data):
-    class_data = {}
-    combined_dict = {}
+def calculate_class_data(all_extracted_data):
+    class_data = {class_idx: [] for class_idx in range(6)}
+    summed_data = [[] for _ in range(6)]
 
-    for class_idx in range(6):
-        class_data[class_idx] = []
+    for sublist in all_extracted_data:
+        for class_index, class_data_list in enumerate(sublist):
+            class_data[class_index].extend(map(len, class_data_list))
+            summed_data[class_index].extend(class_data_list)
 
-    for id, sublist in enumerate(all_extracted_data):
-        for idx, secondary_list in enumerate(sublist):
-            class_data[idx].append(len(secondary_list))
+    return class_data, summed_data
 
-    for class_idx, lengths in class_data.items():
-        total_length = sum(lengths)
-        combined_dict[f"{class_idx}"] = total_length
+
+def calculate_combined_dict(class_data):
+    combined_dict = {class_idx: len(lengths) for class_idx, lengths in class_data.items()}
+    return combined_dict
+
+def print_class_summary(combined_dict):
+    for class_idx, total_length in combined_dict.items():
         print(f"Class {class_idx}: Data points = {total_length}")
 
-    return combined_dict
+def calculate_min_length(summed_data):
+    min_length = np.min([len(inner_array) for inner_array in summed_data])
+    return min_length
 
 
 
