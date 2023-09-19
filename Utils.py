@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, r
 import glob
 import os
 from tqdm import tqdm
+from tensorflow.keras import layers, models
 
 def evaluate_model(model, data, labels):
     """
@@ -312,27 +313,46 @@ def calculate_min_length(summed_data):
 
 
 
-def apply_data_augmentation(eeg_signal):
-    # Randomly select a data augmentation technique
-    augmentation_technique = np.random.choice(['time_warp', 'noise_injection', 'signal_shift'])
+def residual_block(x, filters, kernel_size=3, stride=1):
+    shortcut = x
 
-    augmented_signal = eeg_signal.copy()
+    # First convolution layer
+    x = layers.Conv1D(filters, kernel_size=kernel_size, strides=stride, padding='same')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
 
-    for technique in augmentation_technique:
-        if technique == 'time_warp':
-            # Apply time warping by scaling the time axis
-            scaling_factor = np.random.uniform(0.9, 1.1)
-            augmented_signal = np.interp(np.arange(len(augmented_signal)) * scaling_factor, np.arange(len(augmented_signal)), augmented_signal)
+    # Second convolution layer
+    x = layers.Conv1D(filters, kernel_size=kernel_size, strides=stride, padding='same')(x)
+    x = layers.BatchNormalization()(x)
 
-        elif technique == 'noise_injection':
-            # Add random noise to the signal and cast to 'int64'
-            noise_level = np.random.uniform(0.01, 0.1)
-            noise = np.random.normal(0, noise_level, size=len(augmented_signal)).astype('int64')
-            augmented_signal += noise
+    # Add the shortcut to the output
+    x = layers.Add()([x, shortcut])
+    x = layers.ReLU()(x)
 
-        elif technique == 'signal_shift':
-            # Shift the signal in time
-            shift_amount = np.random.randint(-50, 50)  # Adjust the range as needed
-            augmented_signal = np.roll(augmented_signal, shift_amount)
+    return x
 
-    return augmented_signal
+
+
+def create_resnet(input_shape):
+    inputs = layers.Input(shape=input_shape)
+
+    # Initial convolution layer
+    x = layers.Conv1D(64, kernel_size=7, strides=2, padding='same')(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+
+    # Residual blocks
+    for _ in range(4):
+        x = residual_block(x, filters=64)
+
+    # Global average pooling
+    x = layers.GlobalAveragePooling1D()(x)
+
+    # Fully connected layer for classification (adjust units as needed)
+    x = layers.Dense(128, activation='relu')(x)
+    outputs = layers.Dense(7, activation='softmax')(x)  # Adjust the number of units as needed
+
+
+    # Create the model
+    model = models.Model(inputs, outputs)
+    return model
