@@ -1,15 +1,23 @@
-# Kaggle-Grasp-and-Lift-EEG-Detection
+# Project Title: Neurological Disability Hand Function Identification
 
-Identifying simple hand functions to help patients with neurological disabilities/amputation to gain the ability to perform these basic activities.
+## Introduction
 
+This project aims to address the critical need for assisting patients with neurological disabilities or limb amputations in regaining the ability to perform fundamental hand functions. To achieve this, we leverage EEG (Electroencephalogram) data analysis to identify and understand simple hand movements.
 
-Training and Test data can be downloaded from Kaggle Grasp-and-Lift EEG Detection competition:https://www.kaggle.com/c/grasp-and-lift-eeg-detection
+## Data Source
 
-data for subj1 has been used to train the model. A scripts file was made containing all of the required functions to increase readability of the main body of code. 
-data has first been cleaned and devided into sections whith  each section containing 149 rows of data from sensors. data and labels have been made into array to increase computaion time. all data has been scaled using a standard scaler and suitability of PCA has also been checked. PCA with 25 components has proved to have similar accuracy to using the all of the data components
+The dataset used for this project is sourced from the Kaggle Grasp-and-Lift EEG Detection competition, accessible at [Kaggle Grasp-and-Lift EEG Detection](https://www.kaggle.com/c/grasp-and-lift-eeg-detection). It includes EEG recordings collected from 8 subjects.
 
-***(In this model data has been divided to  segments each containing 149 rows of data for occurance of classes as well as nothin occuring. this means each predicion has 149 x 32 components which as mentioned can be reduced to 25 to increase computational greatly)***
+## Data Preprocessing
 
-Different algorithms such as SVM, KNN, XGboost and Random Forest have been implemented on the data. with XGboost having the highest accuracy of above 77%.
+The initial dataset underwent a thorough cleaning process, resulting in organized sections, each comprising 21 rows of sensor data. To expedite computational efficiency, both data and corresponding labels were transformed into arrays. Further, data normalization was performed using a standard scaler. The feasibility of Principal Component Analysis (PCA) was explored, demonstrating that PCA with 40 to 80 components achieved comparable accuracy to using the entire dataset.
 
-once the model was trained, data from subj2 was used to chech the accuracy of the mmodel predcitions on new data.
+## Model Implementation
+
+Various machine learning algorithms, including Support Vector Machines (SVM), K-Nearest Neighbors (KNN), XGBoost, and Random Forest, were applied to the preprocessed data. The highest achieved accuracy among these models was approximately 35%. Notably, this performance is significantly better than random guessing, considering the presence of 7 distinct classes in the dataset.
+
+Additionally, Convolutional Neural Networks (CNN) and Residual Networks (ResNet) were implemented to delve deeper into EEG signal analysis. Surprisingly, these advanced models yielded accuracy levels similar to the simpler models, indicating that the current EEG signals may not provide sufficient information for a more complex understanding of underlying patterns.
+
+## Future Directions
+
+To enhance the accuracy of the models and gain a deeper understanding of the EEG signals, several avenues for future work are proposed. Feature engineering is a crucial next step to extract more relevant information from the data. Furthermore, the treatment of EEG signals as raw data can be revised to incorporate a temporal unit into the code, potentially leading to increased accuracy and improved insights into neurological disability-related hand movements.
