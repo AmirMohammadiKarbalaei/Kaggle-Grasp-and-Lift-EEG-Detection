@@ -1,26 +1,31 @@
 import pandas as pd
 import numpy as np
 import random
-import random
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, classification_report
 import glob
-import os
 from tqdm import tqdm
+from tensorflow.keras import layers, models
+from sklearn.neighbors import KNeighborsClassifier
+
+
+
+
 
 def evaluate_model(model, data, labels):
     """
-    This function evaluates the performance of a given machine learning model
-      on a dataset. It splits the data into training and testing sets, trains 
-      the model, and predicts on the test set. The function calculates and displays
-        the accuracy and confusion matrix of the predictions. It also computes the 
-        precision, recall, and F1-score for each class and visualizes them using a 
-        bar plot. Finally, it prints a classification report summarizing the 
-        model's performance for each class.
-    
+    Evaluate the performance of a given machine learning model on a dataset.
+
+    Args:
+        model (estimator): The machine learning model to evaluate.
+        data (array-like): The input data for evaluation.
+        labels (array-like): The corresponding labels for the input data.
+
+    Returns:
+        None
     """
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
     model.fit(X_train, y_train)
@@ -67,12 +72,14 @@ def evaluate_model(model, data, labels):
 
 def data_extractor(start_end_data:pd.DataFrame,data1:pd.DataFrame):
     """
-    Extracts specific rows of data based on event 
-    start and end indexes and returns a NumPy array 
-    with the extracted data.
-    
-    
-    
+    Extracts specific rows of data based on event start and end indexes and returns a NumPy array with the extracted data.
+
+    Args:
+        start_end_data (pd.DataFrame): A DataFrame containing event start and end indexes.
+        data1 (pd.DataFrame): The original data from which rows will be extracted.
+
+    Returns:
+        list: A list of NumPy arrays containing the extracted data for each event.
     """
     data = []
     for i in start_end_data.keys():
@@ -91,10 +98,13 @@ def data_extractor(start_end_data:pd.DataFrame,data1:pd.DataFrame):
 
 def start_end_data_finder(events:pd.DataFrame):
     """
+    Finds start and end row indexes for each event in the data and returns them in a dictionary.
 
-    Finds start and end row indexes for each event 
-    in the data and returns them in a DataFrame.
+    Args:
+        events (pd.DataFrame): A DataFrame containing events as columns with binary values (0 or 1).
 
+    Returns:
+        dict: A dictionary where keys are event names and values are lists of start and end row indexes.
     """
     dic = {}
     for i in events.columns:
@@ -242,19 +252,19 @@ def process_start_end(start_end:list, threshold:int):
             new_value = []
             found_pair = False
             for idx in range(0, len(value), 2):
-                if idx + 1 < len(value):
-                    a = value[idx + 1] - value[idx]
-                    if a > threshold:
-                        x = value[idx]
-                        y = x + threshold
-                        new_value.extend([x, y])
-                        found_pair = True
-                    elif a == threshold:
-                        new_value.extend([value[idx], value[idx + 1]])
-                    elif a < threshold:
-                        # If the difference is less than the threshold, remove these values
-                        value[idx] = None
-                        value[idx + 1] = None
+
+                a = value[idx + 1] - value[idx]
+                if a > threshold:
+                    x = value[idx]
+                    y = x + threshold
+                    new_value.extend([x, y])
+                    found_pair = True
+                elif a == threshold:
+                    new_value.extend([value[idx], value[idx + 1]])
+                elif a < threshold:
+                    # If the difference is less than the threshold, remove these values
+                    value[idx] = None
+                    value[idx + 1] = None
 
             # Filter out None values (values less than the threshold) from the list
             new_value = [v for v in new_value if v is not None]
@@ -286,20 +296,163 @@ def process_load_labels(load_labels,number_of_subj):
     
     return processed_load_labels
 
-def calculate_combined_dict(all_extracted_data):
-    class_data = {}
-    combined_dict = {}
+def calculate_class_data(all_extracted_data):
+    class_data = {class_idx: [] for class_idx in range(6)}
+    summed_data = [[] for _ in range(6)]
 
-    for class_idx in range(6):
-        class_data[class_idx] = []
+    for sublist in all_extracted_data:
+        for class_index, class_data_list in enumerate(sublist):
+            class_data[class_index].extend(map(len, class_data_list))
+            summed_data[class_index].extend(class_data_list)
 
-    for id, sublist in enumerate(all_extracted_data):
-        for idx, secondary_list in enumerate(sublist):
-            class_data[idx].append(len(secondary_list))
+    return class_data, summed_data
 
-    for class_idx, lengths in class_data.items():
-        total_length = sum(lengths)
-        combined_dict[f"{class_idx}"] = total_length
+
+def calculate_combined_dict(class_data):
+    """
+    Calculates the combined dictionary representing class indices and the number of data points for each class.
+
+    Args:
+        class_data (dict): A dictionary where keys are class indices and values are lists of data points.
+
+    Returns:
+        dict: A dictionary with class indices as keys and the total number of data points for each class as values.
+    """
+    combined_dict = {class_idx: len(lengths) for class_idx, lengths in class_data.items()}
+    return combined_dict
+
+def print_class_summary(combined_dict):
+    """
+    Prints a summary of class data by displaying class indices and the total number of data points for each class.
+
+    Args:
+        combined_dict (dict): A dictionary with class indices as keys and the total number of data points for each class as values.
+    """
+    for class_idx, total_length in combined_dict.items():
         print(f"Class {class_idx}: Data points = {total_length}")
 
-    return combined_dict
+def calculate_min_length(summed_data):
+    """
+    Calculates the minimum length among the inner arrays in a list of arrays.
+
+    Args:
+        summed_data (list of list): A list of arrays where each inner array represents a data group.
+
+    Returns:
+        int: The minimum length among the inner arrays.
+    """
+    min_length = np.min([len(inner_array) for inner_array in summed_data])
+    return min_length
+
+
+
+def residual_block(x, filters, kernel_size=3, stride=1):
+
+    """
+    Creates a residual block for a ResNet model.
+
+    Args:
+        x (tf.Tensor): Input tensor to the residual block.
+        filters (int): Number of filters in the convolutional layers.
+        kernel_size (int, optional): Size of the convolutional kernel. Defaults to 3.
+        stride (int, optional): Stride for the convolutional layers. Defaults to 1.
+
+    Returns:
+        tf.Tensor: Output tensor of the residual block.
+    """
+    shortcut = x
+
+    x = layers.Conv1D(filters, kernel_size=kernel_size, strides=stride, padding='same')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+
+
+    x = layers.Conv1D(filters, kernel_size=kernel_size, strides=stride, padding='same')(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Add()([x, shortcut])
+    x = layers.ReLU()(x)
+
+    return x
+
+
+
+def create_resnet(input_shape,num_classes=7):
+    """
+    Creates a ResNet model for classification.
+
+    Args:
+        input_shape (tuple): Shape of the input data (e.g., (224, 224, 3) for RGB images).
+        num_classes (int, optional): Number of output classes. Defaults to 7.
+
+    Returns:
+        tf.keras.Model: A ResNet model for classification.
+    """
+    inputs = layers.Input(shape=input_shape)
+
+    # Initial convolution layer
+    x = layers.Conv1D(64, kernel_size=7, strides=2, padding='same')(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.ReLU()(x)
+
+    # Residual blocks
+    for _ in range(4):
+        x = residual_block(x, filters=64)
+
+
+    x = layers.GlobalAveragePooling1D()(x)
+
+
+    x = layers.Dense(128, activation='relu')(x)
+    outputs = layers.Dense(num_classes, activation='softmax')(x)  
+
+
+
+    model = models.Model(inputs, outputs)
+    return model
+
+
+
+
+
+
+def evaluate_knn_classifier(data, labels, k_range=range(1, 100), test_size=0.2, random_state=42):
+    """
+    Evaluate a K-Nearest Neighbors (KNN) classifier for different values of k and plot the accuracy scores.
+
+    Args:
+        data (array-like): The input data for classification.
+        labels (array-like): The corresponding labels for the input data.
+        k_range (iterable, optional): Range of k values to evaluate. Defaults to range(1, 100).
+        test_size (float, optional): Proportion of the data to include in the test split. Defaults to 0.2.
+        random_state (int, optional): Seed for random number generation. Defaults to 42.
+
+    Returns:
+        None
+    """
+
+    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=test_size, random_state=random_state)
+
+
+    accuracy_scores = []
+
+    # Loop through different k values
+    for k in k_range:
+        knn = KNeighborsClassifier(n_neighbors=k)
+        knn.fit(X_train, y_train)
+
+        y_pred = knn.predict(X_test)
+
+        accuracy = accuracy_score(y_test, y_pred)
+        accuracy_scores.append(accuracy)
+
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(k_range, accuracy_scores, marker='o', linestyle='-', color='b')
+    plt.xlabel('Number of Neighbors (k)')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy vs. Number of Neighbors (k)')
+    plt.grid(True)
+    plt.show()
+
+
