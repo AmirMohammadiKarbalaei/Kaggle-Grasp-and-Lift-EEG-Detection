@@ -68,6 +68,10 @@ def evaluate_model(model, data:np.array, labels:np.array):
     print(classification_report(y_test, y_pred))
 
 
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import accuracy_score
+import numpy as np
+
 def grid_search_cv(model, data: np.array, labels: np.array, param_grid: dict):
     """
     Evaluate the performance of a given machine learning model on a dataset with hyperparameter tuning.
@@ -83,20 +87,37 @@ def grid_search_cv(model, data: np.array, labels: np.array, param_grid: dict):
     """
     labels = np.ravel(labels)
     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
-     
 
     grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='accuracy')
-    
 
-    grid_search.fit(X_train, y_train)
-    
+    total_combinations = len(grid_search.param_grid)
+    print(f"Total parameter combinations to test: {total_combinations}")
+
+    best_accuracy = 0.0
+    best_params = None
+
+    for i, params in enumerate(grid_search.param_grid):
+        print(f"Testing parameter combination {i + 1} of {total_combinations}: {params}")
+        grid_search.fit(X_train, y_train)
+        current_accuracy = grid_search.best_score_
+        if current_accuracy > best_accuracy:
+            best_accuracy = current_accuracy
+            best_params = grid_search.best_params_
+            print(f"New best accuracy found: {best_accuracy:.4f}")
+            print(f"Best hyperparameters so far: {best_params}")
+
     best_model = grid_search.best_estimator_
-    
     y_pred = best_model.predict(X_test)
 
     accuracy = accuracy_score(y_test, y_pred)
-    print("Best Hyperparameters:", grid_search.best_params_)
-    return grid_search.best_params_
+    print("Final Best Hyperparameters:", best_params)
+    print(f"Accuracy on the test set with best hyperparameters: {accuracy:.4f}")
+
+    return best_params
+
+# Example usage
+# Define your model, data, and param_grid
+# best_params = grid_search_cv(your_model, your_data, your_labels, your_param_grid)
 
 
 
