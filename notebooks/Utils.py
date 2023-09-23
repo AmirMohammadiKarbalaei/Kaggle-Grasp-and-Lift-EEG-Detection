@@ -10,12 +10,13 @@ import glob
 from tqdm import tqdm
 from tensorflow.keras import layers, models
 from sklearn.neighbors import KNeighborsClassifier
+import logging
 
 
 
 
 
-def evaluate_model(model, data, labels):
+def evaluate_model(model, data:np.array, labels:np.array):
     """
     Evaluate the performance of a given machine learning model on a dataset.
 
@@ -178,10 +179,7 @@ def data_extractor_noevent(data, event, number_of_consecutive_rows,threshold):
 
 
 
-import pandas as pd
-import glob
-from tqdm import tqdm
-import logging
+
 
 DATA_PATH_TEMPLATE = "C:\\Users\\amoha\\Downloads\\train\\subj{}_data"
 LABEL_PATH_TEMPLATE = "C:\\Users\\amoha\\Downloads\\train\\subj{}_events"
@@ -456,3 +454,59 @@ def evaluate_knn_classifier(data, labels, k_range=range(1, 100), test_size=0.2, 
     plt.show()
 
 
+def remove_outliers_zscore(data, z_threshold=3.0):
+    """
+    Remove outliers from a DataFrame using the Z-Score method.
+
+    Parameters:
+        data (pd.DataFrame): The input DataFrame with potentially outliers.
+        z_threshold (float): The z-score threshold for identifying outliers.
+
+    Returns:
+        pd.DataFrame: A DataFrame with outliers removed.
+    """
+    # Calculate the z-scores for each column in the DataFrame
+    z_scores = (data - data.mean()) / data.std()
+
+    # Create a mask to identify outliers based on the z-score threshold
+    outlier_mask = np.abs(z_scores) > z_threshold
+
+    # Iterate over each column to replace outliers with nearest valid values
+    for column in data.columns:
+        data[column] = np.where(outlier_mask[column], np.nan, data[column])
+        data[column].fillna(method='ffill', inplace=True)  # Forward fill NaNs
+        data[column].fillna(method='bfill', inplace=True)  # Backward fill remaining NaNs
+
+    return data
+
+
+
+
+
+def plot_eeg_signal(data: pd.Series, data_name: str):
+    """
+    Plot EEG signal data with Seaborn styling.
+
+    Parameters:
+        data (pd.Series): EEG signal data.
+        data_name (str): Name or description of the data.
+
+    Returns:
+        None
+    """
+    sns.set(style="whitegrid")  
+
+    data_plot = data[:50000]
+    plt.figure(figsize=(12, 6))
+
+
+    sns.lineplot(data=data_plot, linewidth=1.5)
+    plt.legend(loc="upper right")
+    plt.xlabel('Number of Samples')
+    plt.ylabel('EEG Values')
+    plt.title(f'EEG Signal Plot: {data_name}')
+
+    plt.xticks(rotation=0)
+
+    # Display the plot
+    plt.show()
