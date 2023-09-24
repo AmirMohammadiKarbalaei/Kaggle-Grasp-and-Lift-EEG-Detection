@@ -3,71 +3,9 @@ import numpy as np
 import random
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.svm import SVC
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score, classification_report
 import glob
 from tqdm import tqdm
-from tensorflow.keras import layers, models
-from sklearn.neighbors import KNeighborsClassifier
-
-
-
-
-
-def evaluate_model(model, data, labels):
-    """
-    Evaluate the performance of a given machine learning model on a dataset.
-
-    Args:
-        model (estimator): The machine learning model to evaluate.
-        data (array-like): The input data for evaluation.
-        labels (array-like): The corresponding labels for the input data.
-
-    Returns:
-        None
-    """
-    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    
-
-    accuracy = accuracy_score(y_test, y_pred)
-    print("Accuracy:", accuracy)
-    
-
-
-    conf_matrix = confusion_matrix(y_test, y_pred)
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", cbar=False)
-    plt.xlabel("Predicted Labels")
-    plt.ylabel("True Labels")
-    plt.title("Confusion Matrix")
-    plt.show()
-    
-
-
-    precision = precision_score(y_test, y_pred, average=None)
-    recall = recall_score(y_test, y_pred, average=None)
-    f1 = f1_score(y_test, y_pred, average=None)
-
-    class_labels = sorted(set(y_test))
-
-    plt.figure(figsize=(10, 8))
-    sns.barplot(x=class_labels, y=precision, color='blue', alpha=0.8, label='Precision')
-    sns.barplot(x=class_labels, y=recall, color='green', alpha=0.8, label='Recall')
-    sns.barplot(x=class_labels, y=f1, color='yellow', alpha=0.8, label='F1-score')
-
-    plt.xlabel("Class")
-    plt.ylabel("Score")
-    plt.title("Precision, Recall, and F1-score for each Class")
-    plt.legend()
-    plt.show()
-
-
-
-    print("Classification Report:")
-    print(classification_report(y_test, y_pred))
+import logging
 
 
 def data_extractor(start_end_data:pd.DataFrame,data1:pd.DataFrame):
@@ -178,10 +116,7 @@ def data_extractor_noevent(data, event, number_of_consecutive_rows,threshold):
 
 
 
-import pandas as pd
-import glob
-from tqdm import tqdm
-import logging
+
 
 DATA_PATH_TEMPLATE = "C:\\Users\\amoha\\Downloads\\train\\subj{}_data"
 LABEL_PATH_TEMPLATE = "C:\\Users\\amoha\\Downloads\\train\\subj{}_events"
@@ -346,113 +281,56 @@ def calculate_min_length(summed_data):
 
 
 
-def residual_block(x, filters, kernel_size=3, stride=1):
-
+def remove_outliers_zscore(data, z_threshold=3.0):
     """
-    Creates a residual block for a ResNet model.
+    Remove outliers from a DataFrame using the Z-Score method.
 
-    Args:
-        x (tf.Tensor): Input tensor to the residual block.
-        filters (int): Number of filters in the convolutional layers.
-        kernel_size (int, optional): Size of the convolutional kernel. Defaults to 3.
-        stride (int, optional): Stride for the convolutional layers. Defaults to 1.
+    Parameters:
+        data (pd.DataFrame): The input DataFrame with potentially outliers.
+        z_threshold (float): The z-score threshold for identifying outliers.
 
     Returns:
-        tf.Tensor: Output tensor of the residual block.
+        pd.DataFrame: A DataFrame with outliers removed.
     """
-    shortcut = x
+    # Calculate the z-scores for each column in the DataFrame
+    z_scores = (data - data.mean()) / data.std()
 
-    x = layers.Conv1D(filters, kernel_size=kernel_size, strides=stride, padding='same')(x)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
+    # Create a mask to identify outliers based on the z-score threshold
+    outlier_mask = np.abs(z_scores) > z_threshold
 
+    # Iterate over each column to replace outliers with nearest valid values
+    for column in data.columns:
+        data[column] = np.where(outlier_mask[column], np.nan, data[column])
+        data[column].fillna(method='ffill', inplace=True)  # Forward fill NaNs
+        data[column].fillna(method='bfill', inplace=True)  # Backward fill remaining NaNs
 
-    x = layers.Conv1D(filters, kernel_size=kernel_size, strides=stride, padding='same')(x)
-    x = layers.BatchNormalization()(x)
-
-    x = layers.Add()([x, shortcut])
-    x = layers.ReLU()(x)
-
-    return x
-
+    return data
 
 
-def create_resnet(input_shape,num_classes=7):
+def plot_eeg_signal(data: pd.Series, data_name: str):
     """
-    Creates a ResNet model for classification.
+    Plot EEG signal data with Seaborn styling.
 
-    Args:
-        input_shape (tuple): Shape of the input data (e.g., (224, 224, 3) for RGB images).
-        num_classes (int, optional): Number of output classes. Defaults to 7.
-
-    Returns:
-        tf.keras.Model: A ResNet model for classification.
-    """
-    inputs = layers.Input(shape=input_shape)
-
-    # Initial convolution layer
-    x = layers.Conv1D(64, kernel_size=7, strides=2, padding='same')(inputs)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-
-    # Residual blocks
-    for _ in range(4):
-        x = residual_block(x, filters=64)
-
-
-    x = layers.GlobalAveragePooling1D()(x)
-
-
-    x = layers.Dense(128, activation='relu')(x)
-    outputs = layers.Dense(num_classes, activation='softmax')(x)  
-
-
-
-    model = models.Model(inputs, outputs)
-    return model
-
-
-
-
-
-
-def evaluate_knn_classifier(data, labels, k_range=range(1, 100), test_size=0.2, random_state=42):
-    """
-    Evaluate a K-Nearest Neighbors (KNN) classifier for different values of k and plot the accuracy scores.
-
-    Args:
-        data (array-like): The input data for classification.
-        labels (array-like): The corresponding labels for the input data.
-        k_range (iterable, optional): Range of k values to evaluate. Defaults to range(1, 100).
-        test_size (float, optional): Proportion of the data to include in the test split. Defaults to 0.2.
-        random_state (int, optional): Seed for random number generation. Defaults to 42.
+    Parameters:
+        data (pd.Series): EEG signal data.
+        data_name (str): Name or description of the data.
 
     Returns:
         None
     """
+    sns.set(style="whitegrid")  
 
-    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=test_size, random_state=random_state)
-
-
-    accuracy_scores = []
-
-    # Loop through different k values
-    for k in k_range:
-        knn = KNeighborsClassifier(n_neighbors=k)
-        knn.fit(X_train, y_train)
-
-        y_pred = knn.predict(X_test)
-
-        accuracy = accuracy_score(y_test, y_pred)
-        accuracy_scores.append(accuracy)
+    data_plot = data[:50000]
+    plt.figure(figsize=(12, 6))
 
 
-    plt.figure(figsize=(8, 6))
-    plt.plot(k_range, accuracy_scores, marker='o', linestyle='-', color='b')
-    plt.xlabel('Number of Neighbors (k)')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy vs. Number of Neighbors (k)')
-    plt.grid(True)
+    sns.lineplot(data=data_plot, linewidth=1.5)
+    plt.legend(loc="upper right")
+    plt.xlabel('Number of Samples')
+    plt.ylabel('EEG Values')
+    plt.title(f'EEG Signal Plot: {data_name}')
+
+    plt.xticks(rotation=0)
+
+    # Display the plot
     plt.show()
-
-
