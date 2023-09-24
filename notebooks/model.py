@@ -11,7 +11,7 @@ import seaborn as sns
 
 
 
-def evaluate_model(model, data:np.array, labels:np.array):
+def evaluate_model(model, data:np.array, labels:np.array,class_names:list):
     """
     Evaluate the performance of a given machine learning model on a dataset.
 
@@ -37,7 +37,8 @@ def evaluate_model(model, data:np.array, labels:np.array):
 
     conf_matrix = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(8, 6))
-    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", cbar=False)
+    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", cbar=False,
+            xticklabels=class_names, yticklabels=class_names)    
     plt.xlabel("Predicted Labels")
     plt.ylabel("True Labels")
     plt.title("Confusion Matrix")
@@ -71,50 +72,6 @@ def evaluate_model(model, data:np.array, labels:np.array):
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import accuracy_score
 import numpy as np
-
-# def grid_search_cv(model, data: np.array, labels: np.array, param_grid: dict):
-#     """
-#     Evaluate the performance of a given machine learning model on a dataset with hyperparameter tuning.
-
-#     Args:
-#         model (estimator): The machine learning model to evaluate.
-#         data (array-like): The input data for evaluation.
-#         labels (array-like): The corresponding labels for the input data.
-#         param_grid (dict): The hyperparameter grid for GridSearchCV.
-
-#     Returns:
-#         None
-#     """
-#     labels = np.ravel(labels)
-#     X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=0.2, random_state=42)
-
-#     grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='accuracy')
-
-#     total_combinations = len(grid_search.param_grid)
-#     print(f"Total parameter combinations to test: {total_combinations}")
-
-#     best_accuracy = 0.0
-#     best_params = None
-
-#     for i, params in enumerate(grid_search.param_grid):
-#         print(f"Testing parameter combination {i + 1} of {total_combinations}: {params}")
-#         grid_search.fit(X_train, y_train)
-#         current_accuracy = grid_search.best_score_
-#         if current_accuracy > best_accuracy:
-#             best_accuracy = current_accuracy
-#             best_params = grid_search.best_params_
-#             print(f"New best accuracy found: {best_accuracy:.4f}")
-#             print(f"Best hyperparameters so far: {best_params}")
-
-#     best_model = grid_search.best_estimator_
-#     y_pred = best_model.predict(X_test)
-
-#     accuracy = accuracy_score(y_test, y_pred)
-#     print("Final Best Hyperparameters:", best_params)
-#     print(f"Accuracy on the test set with best hyperparameters: {accuracy:.4f}")
-
-#     return best_params
-
 
 
 def grid_search_cv_with_split(model, X, y, param_grid, test_size=0.2, random_state=None):
