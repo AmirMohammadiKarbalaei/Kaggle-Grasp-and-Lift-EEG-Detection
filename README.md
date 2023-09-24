@@ -10,11 +10,11 @@ The dataset used for this project is sourced from the Kaggle Grasp-and-Lift EEG 
 
 ### Data Preprocessing
 
-The initial dataset underwent a thorough cleaning process, resulting in organized sections, each comprising 21 rows of sensor data. To expedite computational efficiency, both data and corresponding labels were transformed into arrays. Further, data normalization was performed using a standard scaler. The feasibility of Principal Component Analysis (PCA) was explored, demonstrating that PCA with 40 to 80 components achieved comparable accuracy to using the entire dataset.
+The initial dataset underwent a thorough cleaning process, resulting in organized sections, each comprising 21 rows of sensor data. To expedite computational efficiency, both data and corresponding labels were transformed into arrays. Further, data normalization was performed using a standard scaler. The feasibility of Principal Component Analysis (PCA) was explored, demonstrating that PCA with 60 components achieved comparable accuracy to using the entire dataset.
 
 ### Model Implementation
 
-Various machine learning algorithms, including Support Vector Machines (SVM), K-Nearest Neighbors (KNN), XGBoost, and Random Forest, were applied to the preprocessed data. The highest achieved accuracy among these models was approximately 35%. Notably, this performance is significantly better than random guessing, considering the presence of 7 distinct classes in the dataset.
+Various machine learning algorithms, including Support Vector Machines (SVM), K-Nearest Neighbors (KNN), XGBoost, and Random Forest, were applied to the preprocessed data. The highest achieved accuracy among these models was approximately 32%. Notably, this performance is significantly better than random guessing, considering the presence of 7 distinct classes in the dataset.
 
 Additionally, Convolutional Neural Networks (CNN) and Residual Networks (ResNet) were implemented to delve deeper into EEG signal analysis. Surprisingly, these advanced models yielded accuracy levels similar to the simpler models, indicating that the current EEG signals may not provide sufficient information for a more complex understanding of underlying patterns.
 
